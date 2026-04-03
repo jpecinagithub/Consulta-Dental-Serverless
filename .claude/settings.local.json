@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(node -e \"const c=require\\(''crypto''\\); console.log\\(''SESSION_SECRET=''+c.randomBytes\\(32\\).toString\\(''hex''\\)\\); console.log\\(''CRON_SECRET=''+c.randomBytes\\(20\\).toString\\(''hex''\\)\\);\")",
-      "Bash(\"/c/Users/HP/Documents/GiithubREPOSITORIES/CLAUDE/Consulta Dental:*)"
+      "Bash(\"/c/Users/HP/Documents/GiithubREPOSITORIES/CLAUDE/Consulta Dental:*)",
+      "Bash(npm run:*)"
     ]
   }
 }
