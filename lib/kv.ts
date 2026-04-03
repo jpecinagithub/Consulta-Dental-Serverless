@@ -28,7 +28,7 @@ export async function setSchedule(schedule: Schedule): Promise<void> {
 // ─── Bloqueos ─────────────────────────────────────────────────────────────────
 
 export async function getBlocks(dentistId: string, date: string): Promise<string[]> {
-  const members = await kv.smembers<string>(`blocks:${dentistId}:${date}`);
+  const members = await kv.smembers(`blocks:${dentistId}:${date}`) as string[];
   return members ?? [];
 }
 
@@ -64,7 +64,7 @@ export async function freeSlot(dentistId: string, date: string, time: string): P
 
 export async function getBookedTimes(dentistId: string, date: string): Promise<string[]> {
   // Obtiene los appointmentIds del día y luego sus horas
-  const ids = await kv.smembers<string>(`appts:${dentistId}:${date}`);
+  const ids = await kv.smembers(`appts:${dentistId}:${date}`) as string[];
   if (!ids || ids.length === 0) return [];
 
   const appointments = await Promise.all(ids.map((id) => kv.get<Appointment>(`appt:${id}`)));
@@ -106,7 +106,7 @@ export async function getAppointmentsByDentistAndDate(
   dentistId: string,
   date: string,
 ): Promise<Appointment[]> {
-  const ids = await kv.smembers<string>(`appts:${dentistId}:${date}`);
+  const ids = await kv.smembers(`appts:${dentistId}:${date}`) as string[];
   if (!ids || ids.length === 0) return [];
 
   const appointments = await Promise.all(ids.map((id) => kv.get<Appointment>(`appt:${id}`)));
