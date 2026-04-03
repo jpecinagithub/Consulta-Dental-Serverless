@@ -1,0 +1,22 @@
+# Dependencias
+node_modules/
+
+# Build de Next.js
+.next/
+out/
+
+# ⚠ Variables de entorno — NUNCA subir al repositorio
+.env
+.env.local
+.env*.local
+
+# Vercel
+.vercel
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
