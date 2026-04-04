@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSchedule, setSchedule } from '@/lib/kv';
 import { getDentistById, DEFAULT_SCHEDULE } from '@/lib/dentists';

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAppointmentByToken, deleteAppointment } from '@/lib/kv';
 import { sendCancellationConfirmation } from '@/lib/email';

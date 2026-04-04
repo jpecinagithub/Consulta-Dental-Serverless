@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getBlocks, addBlock, removeBlock, getSchedule } from '@/lib/kv';
 import { getDentistById } from '@/lib/dentists';

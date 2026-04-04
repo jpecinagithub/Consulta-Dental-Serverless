@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAppointmentsByDentistAndDate, deleteAppointment, getAppointment } from '@/lib/kv';
 import { getDentistById } from '@/lib/dentists';
