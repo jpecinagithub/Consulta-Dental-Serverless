@@ -1,5 +1,7 @@
 /**
- * Capa de abstracción sobre Vercel KV (Redis).
+ * Capa de abstracción sobre Vercel KV (Redis / Upstash).
+ * El cliente se inicializa de forma lazy para evitar errores en build
+ * cuando las variables de entorno KV aún no están configuradas.
  *
  * Claves utilizadas:
  *   schedule:{dentistId}              → Schedule JSON
@@ -10,34 +12,41 @@
  *   cancel:{token}                    → appointmentId  (TTL 30 días)
  */
 
-import { kv } from '@vercel/kv';
+import { createClient } from '@vercel/kv';
 import type { Appointment, Schedule } from '@/types';
 
 const CANCEL_TOKEN_TTL = 60 * 60 * 24 * 30; // 30 días en segundos
 
+function getKv() {
+  return createClient({
+    url: process.env.KV_REST_API_URL ?? '',
+    token: process.env.KV_REST_API_TOKEN ?? '',
+  });
+}
+
 // ─── Horarios ─────────────────────────────────────────────────────────────────
 
 export async function getSchedule(dentistId: string): Promise<Schedule | null> {
-  return kv.get<Schedule>(`schedule:${dentistId}`);
+  return getKv().get<Schedule>(`schedule:${dentistId}`);
 }
 
 export async function setSchedule(schedule: Schedule): Promise<void> {
-  await kv.set(`schedule:${schedule.dentistId}`, schedule);
+  await getKv().set(`schedule:${schedule.dentistId}`, schedule);
 }
 
 // ─── Bloqueos ─────────────────────────────────────────────────────────────────
 
 export async function getBlocks(dentistId: string, date: string): Promise<string[]> {
-  const members = await kv.smembers(`blocks:${dentistId}:${date}`) as string[];
+  const members = await getKv().smembers(`blocks:${dentistId}:${date}`) as string[];
   return members ?? [];
 }
 
 export async function addBlock(dentistId: string, date: string, time: string): Promise<void> {
-  await kv.sadd(`blocks:${dentistId}:${date}`, time);
+  await getKv().sadd(`blocks:${dentistId}:${date}`, time);
 }
 
 export async function removeBlock(dentistId: string, date: string, time: string): Promise<void> {
-  await kv.srem(`blocks:${dentistId}:${date}`, time);
+  await getKv().srem(`blocks:${dentistId}:${date}`, time);
 }
 
 // ─── Citas ────────────────────────────────────────────────────────────────────
@@ -53,27 +62,26 @@ export async function claimSlot(
   appointmentId: string,
 ): Promise<boolean> {
   const key = `slot:${dentistId}:${date}:${time}`;
-  // SETNX: set if not exists. Devuelve 1 si se escribió, 0 si ya existía.
-  const result = await kv.setnx(key, appointmentId);
+  const result = await getKv().setnx(key, appointmentId);
   return result === 1;
 }
 
 export async function freeSlot(dentistId: string, date: string, time: string): Promise<void> {
-  await kv.del(`slot:${dentistId}:${date}:${time}`);
+  await getKv().del(`slot:${dentistId}:${date}:${time}`);
 }
 
 export async function getBookedTimes(dentistId: string, date: string): Promise<string[]> {
-  // Obtiene los appointmentIds del día y luego sus horas
-  const ids = await kv.smembers(`appts:${dentistId}:${date}`) as string[];
+  const ids = await getKv().smembers(`appts:${dentistId}:${date}`) as string[];
   if (!ids || ids.length === 0) return [];
 
-  const appointments = await Promise.all(ids.map((id) => kv.get<Appointment>(`appt:${id}`)));
+  const appointments = await Promise.all(ids.map((id) => getKv().get<Appointment>(`appt:${id}`)));
   return appointments
     .filter((a): a is Appointment => a !== null)
     .map((a) => a.time);
 }
 
 export async function saveAppointment(appointment: Appointment): Promise<void> {
+  const kv = getKv();
   await Promise.all([
     kv.set(`appt:${appointment.id}`, appointment),
     kv.sadd(`appts:${appointment.dentistId}:${appointment.date}`, appointment.id),
@@ -84,16 +92,17 @@ export async function saveAppointment(appointment: Appointment): Promise<void> {
 }
 
 export async function getAppointment(id: string): Promise<Appointment | null> {
-  return kv.get<Appointment>(`appt:${id}`);
+  return getKv().get<Appointment>(`appt:${id}`);
 }
 
 export async function getAppointmentByToken(token: string): Promise<Appointment | null> {
-  const id = await kv.get<string>(`cancel:${token}`);
+  const id = await getKv().get<string>(`cancel:${token}`);
   if (!id) return null;
   return getAppointment(id);
 }
 
 export async function deleteAppointment(appointment: Appointment): Promise<void> {
+  const kv = getKv();
   await Promise.all([
     kv.del(`appt:${appointment.id}`),
     kv.del(`cancel:${appointment.cancellationToken}`),
@@ -106,10 +115,10 @@ export async function getAppointmentsByDentistAndDate(
   dentistId: string,
   date: string,
 ): Promise<Appointment[]> {
-  const ids = await kv.smembers(`appts:${dentistId}:${date}`) as string[];
+  const ids = await getKv().smembers(`appts:${dentistId}:${date}`) as string[];
   if (!ids || ids.length === 0) return [];
 
-  const appointments = await Promise.all(ids.map((id) => kv.get<Appointment>(`appt:${id}`)));
+  const appointments = await Promise.all(ids.map((id) => getKv().get<Appointment>(`appt:${id}`)));
   return appointments
     .filter((a): a is Appointment => a !== null)
     .sort((a, b) => a.time.localeCompare(b.time));
