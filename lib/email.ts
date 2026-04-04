@@ -1,9 +1,15 @@
 import { Resend } from 'resend';
 import type { Appointment, Dentist } from '@/types';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = 'Clínica Dental <onboarding@resend.dev>';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY ?? '');
+}
+
+function getAppUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -17,7 +23,7 @@ function formatDateEs(date: string): string {
 }
 
 async function send(to: string, subject: string, html: string) {
-  await resend.emails.send({ from: FROM, to, subject, html });
+  await getResend().emails.send({ from: FROM, to, subject, html });
 }
 
 // ─── Email al paciente: confirmación de reserva ───────────────────────────────
@@ -26,7 +32,7 @@ export async function sendBookingConfirmation(
   appointment: Appointment,
   dentist: Dentist,
 ): Promise<void> {
-  const cancelUrl = `${APP_URL}/cancel?token=${appointment.cancellationToken}`;
+  const cancelUrl = `${getAppUrl()}/cancel?token=${appointment.cancellationToken}`;
   const dateStr = formatDateEs(appointment.date);
 
   const html = `
